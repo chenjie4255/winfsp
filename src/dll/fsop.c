@@ -44,6 +44,8 @@
             )                           \
     )
 
+BOOLEAN FspIgnoreWriteEACheckOnOverwrite = FALSE;
+
 FSP_API NTSTATUS FspFileSystemOpEnter(FSP_FILE_SYSTEM *FileSystem,
     FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response)
 {
@@ -300,10 +302,16 @@ NTSTATUS FspFileSystemOverwriteCheck(FSP_FILE_SYSTEM *FileSystem,
      * they were actually requested in DesiredAccess.
      */
 
+    UINT32 DesiredAccess = Request->Req.Create.DesiredAccess |
+        (Supersede ? DELETE : FILE_WRITE_DATA) |
+        ((Request->Req.Create.CreateOptions & FILE_DELETE_ON_CLOSE) ? DELETE : 0);
+
+    if (DesiredAccess & FILE_WRITE_EA && FspIgnoreWriteEACheckOnOverwrite) {
+        DesiredAccess &=~FILE_WRITE_EA;
+    }
+
     Result = FspAccessCheck(FileSystem, Request, FALSE, AllowTraverseCheck,
-        Request->Req.Create.DesiredAccess |
-            (Supersede ? DELETE : FILE_WRITE_DATA) |
-            ((Request->Req.Create.CreateOptions & FILE_DELETE_ON_CLOSE) ? DELETE : 0),
+        DesiredAccess,
         &GrantedAccess);
     if (STATUS_REPARSE == Result)
         Result = FspFileSystemCallResolveReparsePoints(FileSystem, Request, Response, GrantedAccess);

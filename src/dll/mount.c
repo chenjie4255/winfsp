@@ -34,6 +34,8 @@ static BOOLEAN FspMountDoNotUseLauncherValue;
 static BOOLEAN FspMountBroadcastDriveChangeValue;
 static BOOLEAN FspMountUseMountmgrFromFSDValue;
 
+extern BOOLEAN FspIgnoreWriteEACheckOnOverwrite;
+
 static VOID FspMountInitializeFromRegistry(VOID)
 {
     DWORD Value;
@@ -63,6 +65,14 @@ static VOID FspMountInitializeFromRegistry(VOID)
         RRF_RT_REG_DWORD, 0, &Value, &Size);
     if (ERROR_SUCCESS == Result)
         FspMountUseMountmgrFromFSDValue = !!Value;
+
+    Value = 0;
+    Size = sizeof Value;
+    Result = RegGetValueW(HKEY_LOCAL_MACHINE, L"" FSP_FSCTL_PRODUCT_FULL_REGKEY,
+        L"IgnoreWriteEACheckOnOverwrite",
+        RRF_RT_REG_DWORD, 0, &Value, &Size);
+    if (ERROR_SUCCESS == Result)
+        FspIgnoreWriteEACheckOnOverwrite = !!Value;
 }
 
 static BOOL WINAPI FspMountInitialize(
